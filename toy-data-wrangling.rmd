@@ -1,0 +1,76 @@
+# Toy Data Wrangling Project
+
+###### This project is based on a toy data set showing product purchases from an electronics store. There are four brands: Philips, Akzo, Van Houten, and Unilever. However, there are many different spellings and capitalizations of those names. Also, the product code and number are combined in one column, separated by a hypen. R is used to clean this data set to make it easier to visualize and analyze.
+
+### load dplyr and tidyr and csv file
+```{r load dplyr and tidyr and csv file}
+library(dplyr)
+library(tidyr)
+
+refine_original <- read.csv("refine_original.csv")
+```
+
+### standardize company names
+```{r standardize company names}
+refine_company <- refine_original[,]
+
+refine_company$company <- sub(".+s$", "philips", refine_company$company, ignore.case = TRUE)
+
+refine_company$company <- sub(".+o$|.+0$", "akzo", refine_company$company, ignore.case = TRUE)
+
+refine_company$company <- sub("^van houten$", "van houten", refine_company$company, ignore.case = TRUE)
+
+refine_company$company <- sub("^unil.+r$", "unilever", refine_company$company, ignore.case = TRUE)
+```
+
+### separate product code and number
+```{r separate product code and number}
+refine_product <- refine_company[,]
+colnames(refine_product)[2] <- "product_code_num"
+
+refine_product <- separate(refine_product, product_code_num, c("product_code", "product_number"), sep="-")
+```
+
+### add product categories
+```{r add product categories}
+product_code <- c("p","v","x","q")
+product_category <- c("Smartphone","TV","Laptop","Tablet")
+product_categories <- data.frame(product_code, product_category)
+
+refine_categories <- merge(refine_product, product_categories, by="product_code")
+
+refine_categories <- refine_categories[, c(2,1,8,3,4,5,6,7)]
+```
+
+### add full address for geocoding
+```{r add full address for geocoding}
+refine_address <- refine_categories[,]
+
+refine_address <- unite(refine_address, "full_address", c("address", "city", "country"), sep=",")
+```
+
+### create binary variables for company and product category
+```{r create binary variables for company and product category}
+refine_clean <- refine_address[,]
+
+refine_clean$company_philips <- ifelse(refine_clean$company == "philips", 1, 0)
+
+refine_clean$company_akzo <- ifelse(refine_clean$company == "akzo", 1, 0)
+
+refine_clean$company_van_houten <- ifelse(refine_clean$company == "van houten", 1, 0)
+
+refine_clean$company_unilever <- ifelse(refine_clean$company == "unilever", 1, 0)
+
+refine_clean$product_smartphone <- ifelse(refine_clean$product_category == "Smartphone", 1, 0)
+
+refine_clean$product_tv <- ifelse(refine_clean$product_category == "TV", 1, 0)
+
+refine_clean$product_laptop <- ifelse(refine_clean$product_category == "Laptop", 1, 0)
+
+refine_clean$product_tablet <- ifelse(refine_clean$product_category == "Tablet", 1, 0)
+```
+
+### write cleaned data to csv file
+```{r write cleaned data to csv file}
+write.csv(refine_clean, file="refine_clean.csv")
+```
